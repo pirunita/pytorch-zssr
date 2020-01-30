@@ -3,13 +3,15 @@ import tqdm
 
 import numpy as np
 import torch
+import torch.nn as nn
 
 from PIL import Image
 
 from networks import ZSSRNetwork
 from options import get_opt
 from torchvision import transforms
-from utils import DataHandler
+from utils import DataHandler, adjust_learning_rate
+
 
 
 
@@ -30,7 +32,7 @@ def train(opt, model, input_img):
     
     
     
-    with tqdm.tqdm(total=opt.num_batch_size, miniters=1, mininterval=0) as progress:
+    with tqdm.tqdm(miniters=1, mininterval=0) as progress:
         for iter, (hr, lr) in enumerate(handler.preprocess_data()):
             lr = lr.cuda()
             hr = hr.cuda()
@@ -49,11 +51,16 @@ def train(opt, model, input_img):
                 iter, cpu_loss, learning_rate))
             progress.update()
             
+            if iter > 0 and iter % 10000 == 0:
+                learning_rate = learning_rate / 10
+                adjust_learning_rate(optimizer, new_lr=learning_rate)
+                print("Learning rate reduced to {lr}".format(lr=learning_rate) )
+            """
             if (not (1 + iter) % opt.learning_rate_policy_check_every
                 and iter - learning_rate_change_iter_nums[-1] > opt.min_iters):
-                [slope, _], [[var, _], _] = np.polyfit(mse_steps[-(opt.learning_rate_slope_range /
+                [slope, _], [[var, _], _] = np.polyfit(mse_steps[-int(opt.learning_rate_slope_range /
                                                                     opt.run_test_every):],
-                                                        mse_rec[-(opt.learning_rate_slope_range /
+                                                        mse_rec[-int(opt.learning_rate_slope_range /
                                                                     opt.run_test_every):],
                                                         1, cov=True)
                 
@@ -62,7 +69,7 @@ def train(opt, model, input_img):
                 if -opt.learning_rate_change_ratio * slope < std:
                     learning_rate /= 10
                     learning_rate_change_iter_nums.append(iter)
-                
+            """
                 
             loss.backward()
             optimizer.step()
@@ -92,7 +99,7 @@ def test(opt, model, input_img):
     output_na[np.where(output_na < 0)] = 0.0
     output_na[np.where(output_na > 1)] = 1.0
     
-    output_img = output_na.from_numpy()
+    output_img = torch.from_numpy(output_na)
     output_img = transforms.ToPILImage()(output_img)
     output_img.save('zssr.png')
     

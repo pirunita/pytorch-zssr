@@ -8,15 +8,18 @@ from torchvision import transforms
 from torchvision.transforms import functional as F
 
 
+def adjust_learning_rate(optimizer, new_lr):
+    for param_group in optimizer.param_groups:
+        param_group['lr'] = new_lr
+
+
 class DataHandler(object):
     def __init__(self, opt, input_img):
         super(DataHandler, self).__init__()
         
-        #self.input_img = input_img
-        self.input_img = Image.open(opt.input_img)
-        self.input_pairs = self.create_pairs()
-        
+        self.input_img = input_img
         self.scale_factor = opt.scale_factor
+        self.input_pairs = self.create_pairs()
         
         # x[0] : hr, HR - test image I's size-ratio approximately 1
         size_ratio = np.float32([x[0].size[0]*x[0].size[1] / float(input_img.size[0] * input_img.size[1]) for x in self.input_pairs])
@@ -31,8 +34,8 @@ class DataHandler(object):
     
     def create_pairs(self):
         # Downsampling
-        smaller_side = min(self.input_img[0:2])
-        larger_side = max(self.input_img[0:2])
+        smaller_side = min(self.input_img.size[0:2])
+        larger_side = max(self.input_img.size[0:2])
         
         factors = []
         for i in range(smaller_side//5, smaller_side+1):
@@ -75,7 +78,7 @@ class RandomRotation(object):
     
     def __call__(self, data):
         hr, lr = data
-        angle = random.choices(self.angles)
+        angle = np.random.choice(self.angles)
         
         return F.rotate(hr, angle), F.rotate(lr, angle)
 
