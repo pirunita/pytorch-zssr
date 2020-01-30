@@ -38,7 +38,7 @@ def train(opt, model, input_img):
             output = model(lr) + lr
             loss = criterionL1(output, hr)
             
-            cpu_loss = loss.data.cpu().numpy()[0]
+            cpu_loss = loss.data.cpu().numpy()
             
             
             
@@ -109,5 +109,5 @@ def main():
     
 
 if __name__ == '__main__':
-    os.environ["CUDA_VISIBLE_DEVICES"] = "1"
+    os.environ["CUDA_VISIBLE_DEVICES"] = "0"
     main()
